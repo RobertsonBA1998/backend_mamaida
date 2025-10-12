@@ -3,6 +3,7 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const session = require("express-session");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,7 +22,15 @@ if (!fs.existsSync(usersFile))
   JSON.stringify([{ username: "admin", password: "admin123" }])
  );
 
-// Middleware
+// ---------- MIDDLEWARE ----------
+
+// CORS: allow frontend and localhost for testing
+app.use(
+ cors({
+  origin: ["https://mamaidashoes.com", "http://127.0.0.1:5500"], // Netlify + local
+  credentials: true, // allow cookies
+ })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -35,8 +44,8 @@ app.use(
   saveUninitialized: false,
   cookie: {
    secure: process.env.NODE_ENV === "production", // HTTPS only in production
-   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // cross-origin only in prod
-   httpOnly: true, // prevent client-side JS access
+   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+   httpOnly: true,
   },
  })
 );
