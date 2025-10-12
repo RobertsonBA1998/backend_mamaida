@@ -24,16 +24,14 @@ if (!fs.existsSync(usersFile))
 
 // ---------------------- CORS ----------------------
 const allowedOrigins = [
- "https://backend-mamaida.onrender.com", // Render backend HTML test
- "https://your-netlify-frontend.netlify.app", // Netlify frontend
+ "https://backend-mamaida.onrender.com", // for testing directly
+ "https://your-netlify-frontend.netlify.app", // your Netlify frontend
 ];
 
 app.use(
  cors({
   origin: function (origin, callback) {
-   // allow requests with no origin (Postman, direct browser access)
-   if (!origin) return callback(null, true);
-
+   if (!origin) return callback(null, true); // allow Postman or direct browser
    if (allowedOrigins.includes(origin)) {
     callback(null, true);
    } else {
@@ -56,6 +54,10 @@ app.use(
   secret: "supersecretkey",
   resave: false,
   saveUninitialized: false,
+  cookie: {
+   secure: true, // for HTTPS only
+   sameSite: "none", // required when frontend is on a different origin
+  },
  })
 );
 
@@ -106,9 +108,7 @@ app.get("/dashboard", requireLogin, (req, res) => {
 });
 
 // Get all products (public)
-app.get("/products", (req, res) => {
- res.json(loadProducts());
-});
+app.get("/products", (req, res) => res.json(loadProducts()));
 
 // Add/Edit product (protected)
 app.post(
@@ -119,6 +119,7 @@ app.post(
   try {
    const { productName, category, inStock, originalName } = req.body;
    const image = req.file ? "/uploads/" + req.file.filename : null;
+
    if (!productName || !category) return res.status(400).send("Missing fields");
 
    let products = loadProducts();
@@ -143,7 +144,7 @@ app.post(
    saveProducts(products);
    res.sendStatus(200);
   } catch (err) {
-   console.error("Error saving product:", err);
+   console.error(err);
    res.status(500).send("Internal server error");
   }
  }
@@ -159,9 +160,7 @@ app.delete("/delete-product", requireLogin, (req, res) => {
 });
 
 // Root route
-app.get("/", (req, res) => {
- res.send("Mama Ida Shoes backend is running! 👟");
-});
+app.get("/", (req, res) => res.send("Mama Ida Shoes backend is running! 👟"));
 
 // Start server
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
