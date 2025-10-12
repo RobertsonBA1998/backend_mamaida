@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta
+   name="viewport"
+   content="width=device-width, initial-scale=1, shrink-to-fit=no"
+  />
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <link rel="shortcut icon" href="images/favicon.jpg" type="" />
+  <title>Feane</title>
+
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+  <!-- Owl slider -->
+  <link
+   rel="stylesheet"
+   type="text/css"
+   href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css"
+  />
+  <!-- Nice select -->
+  <link
+   rel="stylesheet"
+   href="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/css/nice-select.min.css"
+  />
+  <!-- Font awesome -->
+  <link href="css/font-awesome.min.css" rel="stylesheet" />
+  <!-- Custom styles -->
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/responsive.css" rel="stylesheet" />
+ </head>
+
+ <body class="sub_page">
+  <div class="hero_area">
+   <div class="bg-box">
+    <img src="images/hero-bg.jpg" alt="" />
+   </div>
+   <header class="header_section">
+    <div class="container">
+     <nav class="navbar navbar-expand-lg custom_nav-container">
+      <a class="navbar-brand" href="index.html"
+       ><span> Mama Ida Shoes </span></a
+      >
+      <button
+       class="navbar-toggler"
+       type="button"
+       data-toggle="collapse"
+       data-target="#navbarSupportedContent"
+       aria-controls="navbarSupportedContent"
+       aria-expanded="false"
+       aria-label="Toggle navigation"
+      >
+       <span class=""> </span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+       <ul class="navbar-nav mx-auto">
+        <li class="nav-item active">
+         <a class="nav-link" href="index.html">Accueil</a>
+        </li>
+        <li class="nav-item">
+         <a class="nav-link" href="menu.html">Articles</a>
+        </li>
+        <li class="nav-item">
+         <a class="nav-link" href="about.html">Qui Sommes-Nous</a>
+        </li>
+        <li class="nav-item">
+         <a class="nav-link" href="book.html">Contact</a>
+        </li>
+       </ul>
+       <div class="user_option"></div>
+      </div>
+     </nav>
+    </div>
+   </header>
+  </div>
+
+  <!-- food section -->
+  <section class="food_section layout_padding">
+   <div class="container">
+    <div class="heading_container heading_center">
+     <h2>Notre Selection</h2>
+    </div>
+
+    <ul class="filters_menu">
+     <li class="active" data-filter="*">Tous</li>
+     <li data-filter=".femmes">Collection pour Femmes</li>
+     <li data-filter=".hommes">Collection pour Hommes</li>
+     <li data-filter=".fille">Collection pour Fille</li>
+     <li data-filter=".garcon">Collection pour Garçon</li>
+    </ul>
+
+    <div class="filters-content">
+     <div class="row grid" id="productContainer"></div>
+    </div>
+   </div>
+  </section>
+
+  <!-- footer section -->
+  <footer class="footer_section">
+   <div class="container">
+    <!-- footer content unchanged -->
+    <div class="footer-info">
+     <p>
+      &copy; <span id="displayYear"></span> MAMA IDA Shoes. Tous droits réservés
+     </p>
+    </div>
+   </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/jquery-3.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="js/bootstrap.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+  <script src="https://unpkg.com/isotope-layout@3.0.4/dist/isotope.pkgd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/js/jquery.nice-select.min.js"></script>
+  <script src="js/custom.js"></script>
+
+  <!-- Dynamic Product Loading & Isotope -->
+  <script>
+   const container = document.getElementById("productContainer");
+
+   fetch("/products")
+    .then((res) => res.json())
+    .then((products) => {
+     products.forEach((p) => {
+      const div = document.createElement("div");
+      div.className = `col-sm-6 col-lg-4 all ${p.category}`;
+      div.innerHTML = `
+            <div class="box">
+              <div>
+                <div class="img-box">
+                  <img src="${p.image}" alt="${p.name}" />
+                </div>
+                ${!p.inStock ? '<h5 class="stock">Stock épuisé</h5>' : ""}
+              </div>
+            </div>
+          `;
+      container.appendChild(div);
+     });
+
+     // Initialize Isotope after products loaded
+     const iso = new Isotope(container, {
+      itemSelector: ".all",
+      layoutMode: "fitRows",
+     });
+
+     // Filter on click
+     const filters = document.querySelectorAll(".filters_menu li");
+     filters.forEach((filter) => {
+      filter.addEventListener("click", function () {
+       filters.forEach((f) => f.classList.remove("active"));
+       this.classList.add("active");
+       const filterValue = this.getAttribute("data-filter");
+       iso.arrange({ filter: filterValue });
+      });
+     });
+    });
+  </script>
+ </body>
+</html>

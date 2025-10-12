@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/bootstrap.css" />
+  <style>
+   body {
+    background: #f8f9fa;
+   }
+   .preview-img {
+    max-width: 150px;
+    max-height: 150px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+   }
+   .product-row {
+    border-bottom: 1px solid #dee2e6;
+    padding: 10px 0;
+    align-items: center;
+   }
+   .product-row img {
+    max-height: 80px;
+   }
+   .filters_menu button {
+    margin: 0 5px 10px 0;
+   }
+  </style>
+ </head>
+ <body class="p-4">
+  <div class="container">
+   <h2 class="mb-4">Admin Dashboard</h2>
+
+   <!-- Sign Out Button -->
+   <div class="d-flex justify-content-end mb-3">
+    <a href="/logout" class="btn btn-danger">Sign Out</a>
+   </div>
+
+   <!-- Add / Edit Product Form -->
+   <form
+    id="productForm"
+    enctype="multipart/form-data"
+    class="mb-4 card p-3 shadow-sm bg-white"
+   >
+    <input type="hidden" name="originalName" id="originalName" />
+    <div class="mb-2">
+     <label>Product Name:</label>
+     <input type="text" name="productName" required class="form-control" />
+    </div>
+    <div class="mb-2">
+     <label>Category:</label>
+     <select name="category" class="form-control">
+      <option value="femmes">Femmes</option>
+      <option value="hommes">Hommes</option>
+      <option value="fille">Fille</option>
+      <option value="garcon">Garçon</option>
+     </select>
+    </div>
+    <div class="mb-2">
+     <label>Upload Image:</label>
+     <input
+      type="file"
+      name="productImage"
+      accept="image/*"
+      class="form-control"
+      id="imageInput"
+     />
+     <img
+      id="preview"
+      class="preview-img"
+      src=""
+      alt="Image Preview"
+      style="display: none"
+     />
+    </div>
+    <div class="mb-2">
+     <label>Stock Status:</label>
+     <select name="inStock" class="form-control">
+      <option value="true">In Stock</option>
+      <option value="false">Stock épuisé</option>
+     </select>
+    </div>
+    <div class="d-flex gap-2">
+     <button type="submit" class="btn btn-primary">Save Product</button>
+     <button type="button" id="resetForm" class="btn btn-secondary">
+      Clear
+     </button>
+    </div>
+   </form>
+
+   <!-- Filter Buttons -->
+   <div class="filters_menu mb-3">
+    <button class="btn btn-outline-primary btn-sm active" data-filter="*">
+     All
+    </button>
+    <button class="btn btn-outline-primary btn-sm" data-filter="femmes">
+     Femmes
+    </button>
+    <button class="btn btn-outline-primary btn-sm" data-filter="hommes">
+     Hommes
+    </button>
+    <button class="btn btn-outline-primary btn-sm" data-filter="fille">
+     Fille
+    </button>
+    <button class="btn btn-outline-primary btn-sm" data-filter="garcon">
+     Garçon
+    </button>
+   </div>
+
+   <!-- Existing Products List -->
+   <div id="productsList" class="card shadow-sm bg-white p-3"></div>
+  </div>
+
+  <script src="js/jquery-3.4.1.min.js"></script>
+  <script src="js/bootstrap.js"></script>
+
+  <script>
+   const imageInput = document.getElementById("imageInput");
+   const preview = document.getElementById("preview");
+   const productForm = document.getElementById("productForm");
+   const productsList = document.getElementById("productsList");
+   const originalNameInput = document.getElementById("originalName");
+   const filterButtons = document.querySelectorAll(".filters_menu button");
+
+   let allProducts = [];
+
+   imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (file) {
+     preview.src = URL.createObjectURL(file);
+     preview.style.display = "block";
+    }
+   });
+
+   async function loadProducts() {
+    const res = await fetch("/products");
+    allProducts = await res.json();
+    renderProducts("*");
+   }
+
+   function renderProducts(category) {
+    productsList.innerHTML = "";
+    const filtered =
+     category === "*"
+      ? allProducts
+      : allProducts.filter((p) => p.category === category);
+    filtered.forEach((p) => {
+     const div = document.createElement("div");
+     div.className = "product-row row align-items-center";
+     div.innerHTML = `
+        <div class="col-2"><img src="${p.image}" class="img-fluid" /></div>
+        <div class="col-3">${p.name}</div>
+        <div class="col-2">${p.category}</div>
+        <div class="col-2">${p.inStock ? "In Stock" : "Stock épuisé"}</div>
+        <div class="col-3">
+          <button class="btn btn-sm btn-info editBtn">Edit</button>
+          <button class="btn btn-sm btn-danger deleteBtn">Delete</button>
+        </div>
+       `;
+     productsList.appendChild(div);
+
+     div.querySelector(".editBtn").addEventListener("click", () => {
+      productForm.productName.value = p.name;
+      productForm.category.value = p.category;
+      productForm.inStock.value = p.inStock;
+      originalNameInput.value = p.name;
+      preview.src = p.image;
+      preview.style.display = "block";
+     });
+
+     div.querySelector(".deleteBtn").addEventListener("click", async () => {
+      if (confirm("Delete this product?")) {
+       await fetch(`/delete-product?name=${encodeURIComponent(p.name)}`, {
+        method: "DELETE",
+       });
+       loadProducts();
+      }
+     });
+    });
+   }
+
+   loadProducts();
+
+   productForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(productForm);
+    try {
+     const res = await fetch("/update-product", {
+      method: "POST",
+      body: formData,
+     });
+     if (res.ok) {
+      alert("Product saved!");
+      productForm.reset();
+      preview.style.display = "none";
+      originalNameInput.value = "";
+      loadProducts();
+     } else {
+      const text = await res.text();
+      console.error("Server response:", text);
+      alert("Error saving product.");
+     }
+    } catch (err) {
+     console.error(err);
+     alert("Error saving product.");
+    }
+   });
+
+   document.getElementById("resetForm").addEventListener("click", () => {
+    productForm.reset();
+    preview.style.display = "none";
+    originalNameInput.value = "";
+   });
+
+   filterButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+     filterButtons.forEach((b) => b.classList.remove("active"));
+     btn.classList.add("active");
+     renderProducts(btn.getAttribute("data-filter"));
+    });
+   });
+  </script>
+ </body>
+</html>
