@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="css/bootstrap.css" />
+  <link rel="stylesheet" href="bootstrap.css" />
   <style>
    body {
     background: #f8f9fa;
@@ -126,6 +126,7 @@
 
    let allProducts = [];
 
+   // Image preview
    imageInput.addEventListener("change", () => {
     const file = imageInput.files[0];
     if (file) {
@@ -134,23 +135,59 @@
     }
    });
 
+   // Load all products from backend
    async function loadProducts() {
-    const res = await fetch("/products");
-    allProducts = await res.json();
-    renderProducts("*");
+    try {
+     const res = await fetch("https://backend-mamaida.onrender.com/products", {
+      credentials: "include",
+     });
+     if (!res.ok) throw new Error("Unauthorized or failed to fetch products");
+     allProducts = await res.json();
+     renderProducts("*");
+    } catch (err) {
+     console.error(err);
+     alert("Failed to load products. Are you logged in?");
+    }
    }
 
+   // Delete product
+   async function deleteProduct(name) {
+    try {
+     const res = await fetch(
+      `https://backend-mamaida.onrender.com/delete-product?name=${encodeURIComponent(
+       name
+      )}`,
+      {
+       method: "DELETE",
+       credentials: "include",
+      }
+     );
+     if (!res.ok) throw new Error("Failed to delete product");
+     loadProducts();
+    } catch (err) {
+     console.error(err);
+     alert("Error deleting product.");
+    }
+   }
+
+   // Render products list
    function renderProducts(category) {
     productsList.innerHTML = "";
     const filtered =
      category === "*"
       ? allProducts
       : allProducts.filter((p) => p.category === category);
+
     filtered.forEach((p) => {
+     // Use backend URL if p.image is not a full URL
+     const imageUrl = p.image.startsWith("http")
+      ? p.image
+      : `https://backend-mamaida.onrender.com/${p.image}`;
+
      const div = document.createElement("div");
      div.className = "product-row row align-items-center";
      div.innerHTML = `
-        <div class="col-2"><img src="${p.image}" class="img-fluid" /></div>
+        <div class="col-2"><img src="${imageUrl}" class="img-fluid" /></div>
         <div class="col-3">${p.name}</div>
         <div class="col-2">${p.category}</div>
         <div class="col-2">${p.inStock ? "In Stock" : "Stock épuisé"}</div>
@@ -158,62 +195,65 @@
           <button class="btn btn-sm btn-info editBtn">Edit</button>
           <button class="btn btn-sm btn-danger deleteBtn">Delete</button>
         </div>
-       `;
+     `;
      productsList.appendChild(div);
 
+     // Edit button
      div.querySelector(".editBtn").addEventListener("click", () => {
       productForm.productName.value = p.name;
       productForm.category.value = p.category;
       productForm.inStock.value = p.inStock;
       originalNameInput.value = p.name;
-      preview.src = p.image;
+      preview.src = imageUrl;
       preview.style.display = "block";
      });
 
-     div.querySelector(".deleteBtn").addEventListener("click", async () => {
+     // Delete button
+     div.querySelector(".deleteBtn").addEventListener("click", () => {
       if (confirm("Delete this product?")) {
-       await fetch(`/delete-product?name=${encodeURIComponent(p.name)}`, {
-        method: "DELETE",
-       });
-       loadProducts();
+       deleteProduct(p.name);
       }
      });
     });
    }
 
-   loadProducts();
-
+   // Submit form (add / update product)
    productForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(productForm);
     try {
-     const res = await fetch("/update-product", {
-      method: "POST",
-      body: formData,
-     });
-     if (res.ok) {
-      alert("Product saved!");
-      productForm.reset();
-      preview.style.display = "none";
-      originalNameInput.value = "";
-      loadProducts();
-     } else {
+     const res = await fetch(
+      "https://backend-mamaida.onrender.com/update-product",
+      {
+       method: "POST",
+       body: formData,
+       credentials: "include",
+      }
+     );
+     if (!res.ok) {
       const text = await res.text();
       console.error("Server response:", text);
-      alert("Error saving product.");
+      throw new Error("Error saving product");
      }
+     alert("Product saved!");
+     productForm.reset();
+     preview.style.display = "none";
+     originalNameInput.value = "";
+     loadProducts();
     } catch (err) {
      console.error(err);
      alert("Error saving product.");
     }
    });
 
+   // Reset form
    document.getElementById("resetForm").addEventListener("click", () => {
     productForm.reset();
     preview.style.display = "none";
     originalNameInput.value = "";
    });
 
+   // Filter buttons
    filterButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
      filterButtons.forEach((b) => b.classList.remove("active"));
@@ -221,6 +261,9 @@
      renderProducts(btn.getAttribute("data-filter"));
     });
    });
+
+   // Initial load
+   loadProducts();
   </script>
  </body>
 </html>
