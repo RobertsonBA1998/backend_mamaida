@@ -6,7 +6,7 @@ const session = require("express-session");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 3000; // ✅ Works on Render
+const PORT = process.env.PORT || 3000;
 
 // Paths
 const uploadsDir = path.join(__dirname, "public/uploads");
@@ -22,8 +22,31 @@ if (!fs.existsSync(usersFile))
   JSON.stringify([{ username: "admin", password: "admin123" }])
  );
 
-// Middleware
-app.use(cors()); // ✅ Allow frontend on Netlify to access backend
+// ---------------------- CORS ----------------------
+const allowedOrigins = [
+ "https://backend-mamaida.onrender.com", // Render backend HTML test
+ "https://your-netlify-frontend.netlify.app", // Netlify frontend
+];
+
+app.use(
+ cors({
+  origin: function (origin, callback) {
+   // allow requests with no origin (Postman, direct browser access)
+   if (!origin) return callback(null, true);
+
+   if (allowedOrigins.includes(origin)) {
+    callback(null, true);
+   } else {
+    callback(new Error("Not allowed by CORS"));
+   }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+ })
+);
+
+// ---------------------- Middleware ----------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -55,7 +78,7 @@ function requireLogin(req, res, next) {
  else res.status(401).send("Unauthorized");
 }
 
-// ---------------------- ROUTES ----------------------
+// ---------------------- Routes ----------------------
 
 // Login
 app.post("/login", (req, res) => {
@@ -134,13 +157,6 @@ app.delete("/delete-product", requireLogin, (req, res) => {
  saveProducts(products);
  res.sendStatus(200);
 });
-
-app.use(
- cors({
-  origin: "https://backend-mamaida.onrender.com",
-  credentials: true,
- })
-);
 
 // Root route
 app.get("/", (req, res) => {
