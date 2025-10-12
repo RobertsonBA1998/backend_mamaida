@@ -3,7 +3,6 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const session = require("express-session");
-const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,22 +22,6 @@ if (!fs.existsSync(usersFile))
  );
 
 // Middleware
-const allowedOrigins = [
- "https://backend-mamaida.onrender.com", // backend-only testing
- "https://your-netlify-frontend.netlify.app",
- "https://mamaidashoes.com/",
-];
-
-app.use(
- cors({
-  origin: function (origin, callback) {
-   if (!origin) return callback(null, true); // Postman or direct browser
-   if (allowedOrigins.includes(origin)) callback(null, true);
-   else callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
- })
-);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
