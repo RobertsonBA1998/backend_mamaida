@@ -135,6 +135,13 @@ app.delete("/delete-product", requireLogin, (req, res) => {
  res.sendStatus(200);
 });
 
+app.use(
+ cors({
+  origin: "https://backend-mamaida.onrender.com",
+  credentials: true,
+ })
+);
+
 // Root route
 app.get("/", (req, res) => {
  res.send("Mama Ida Shoes backend is running! 👟");
