@@ -22,46 +22,43 @@ if (!fs.existsSync(usersFile))
   JSON.stringify([{ username: "admin", password: "admin123" }])
  );
 
-// ---------------------- CORS ----------------------
+// Middleware
 const allowedOrigins = [
- "https://backend-mamaida.onrender.com", // for testing directly
- "https://your-netlify-frontend.netlify.app", // your Netlify frontend
+ "https://backend-mamaida.onrender.com", // backend-only testing
+ "https://your-netlify-frontend.netlify.app",
+ "https://mamaidashoes.com/",
 ];
 
 app.use(
  cors({
   origin: function (origin, callback) {
-   if (!origin) return callback(null, true); // allow Postman or direct browser
-   if (allowedOrigins.includes(origin)) {
-    callback(null, true);
-   } else {
-    callback(new Error("Not allowed by CORS"));
-   }
+   if (!origin) return callback(null, true); // Postman or direct browser
+   if (allowedOrigins.includes(origin)) callback(null, true);
+   else callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
  })
 );
 
-// ---------------------- Middleware ----------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+// Session setup
 app.use(
  session({
   secret: "supersecretkey",
   resave: false,
   saveUninitialized: false,
   cookie: {
-   secure: true, // for HTTPS only
-   sameSite: "none", // required when frontend is on a different origin
+   secure: process.env.NODE_ENV === "production", // HTTPS only in production
+   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // cross-origin only in prod
+   httpOnly: true, // prevent client-side JS access
   },
  })
 );
 
-// Multer setup for uploads
+// Multer setup
 const storage = multer.diskStorage({
  destination: (req, file, cb) => cb(null, uploadsDir),
  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
@@ -80,7 +77,7 @@ function requireLogin(req, res, next) {
  else res.status(401).send("Unauthorized");
 }
 
-// ---------------------- Routes ----------------------
+// ---------------------- ROUTES ----------------------
 
 // Login
 app.post("/login", (req, res) => {
@@ -108,7 +105,9 @@ app.get("/dashboard", requireLogin, (req, res) => {
 });
 
 // Get all products (public)
-app.get("/products", (req, res) => res.json(loadProducts()));
+app.get("/products", (req, res) => {
+ res.json(loadProducts());
+});
 
 // Add/Edit product (protected)
 app.post(
@@ -119,7 +118,6 @@ app.post(
   try {
    const { productName, category, inStock, originalName } = req.body;
    const image = req.file ? "/uploads/" + req.file.filename : null;
-
    if (!productName || !category) return res.status(400).send("Missing fields");
 
    let products = loadProducts();
@@ -144,7 +142,7 @@ app.post(
    saveProducts(products);
    res.sendStatus(200);
   } catch (err) {
-   console.error(err);
+   console.error("Error saving product:", err);
    res.status(500).send("Internal server error");
   }
  }
@@ -160,7 +158,9 @@ app.delete("/delete-product", requireLogin, (req, res) => {
 });
 
 // Root route
-app.get("/", (req, res) => res.send("Mama Ida Shoes backend is running! 👟"));
+app.get("/", (req, res) => {
+ res.send("Mama Ida Shoes backend is running! 👟");
+});
 
 // Start server
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
