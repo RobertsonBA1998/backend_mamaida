@@ -29,7 +29,7 @@ if (!fs.existsSync(usersFile)) {
 // Frontend origins
 const FRONTEND_ORIGINS = [
  "https://mamaidashoes.com", // Production frontend
- "https://mamaidashoes.netlify.app/",
+ "https://mamaidashoes.netlify.app",
  "http://127.0.0.1:5500", // Local dev
 ];
 
